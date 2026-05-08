@@ -5,6 +5,7 @@ import type {
   AssistantMessage,
   ChatCompletionRequest,
   ChatCompletionResponse,
+  ChatCompletionUsage,
   ChatToolCall,
 } from "../llm/protocol.js";
 import type { ToolExecutionResult } from "../tools/types.js";
@@ -43,6 +44,11 @@ type SessionEventMap = {
     round: number;
     response: ChatCompletionResponse;
   };
+  token_usage: {
+    round: number;
+    usage: ChatCompletionUsage;
+    cumulative_usage: TokenUsageSummary;
+  };
   assistant_message: {
     round: number;
     message: AssistantMessage;
@@ -66,6 +72,9 @@ type SessionEventMap = {
     message: string;
     stack?: string | null;
   };
+  session_summary: {
+    token_usage: TokenUsageSummary;
+  };
 };
 
 type SessionEventRecord<TType extends keyof SessionEventMap> = {
@@ -75,6 +84,16 @@ type SessionEventRecord<TType extends keyof SessionEventMap> = {
   type: TType;
 } & SessionEventMap[TType];
 
+export type TokenUsageSummary = {
+  request_count: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  completion_text_tokens: number;
+  completion_reasoning_tokens: number;
+  prompt_text_tokens: number;
+};
+
 export class SessionStore {
   readonly sessionId: string;
   readonly filePath: string;
@@ -82,6 +101,15 @@ export class SessionStore {
   private sequence = 0;
   private writeChain: Promise<void> = Promise.resolve();
   private closed = false;
+  private readonly tokenUsage: TokenUsageSummary = {
+    request_count: 0,
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    total_tokens: 0,
+    completion_text_tokens: 0,
+    completion_reasoning_tokens: 0,
+    prompt_text_tokens: 0,
+  };
 
   private constructor(sessionId: string, filePath: string) {
     this.sessionId = sessionId;
@@ -122,6 +150,15 @@ export class SessionStore {
     response: ChatCompletionResponse,
   ): Promise<void> {
     await this.log("request_end", { round, response });
+
+    if (response.usage) {
+      this.addTokenUsage(response.usage);
+      await this.log("token_usage", {
+        round,
+        usage: response.usage,
+        cumulative_usage: this.getTokenUsageSummary(),
+      });
+    }
   }
 
   async logAssistantMessage(
@@ -183,6 +220,9 @@ export class SessionStore {
     }
 
     this.closed = true;
+    await this.log("session_summary", {
+      token_usage: this.getTokenUsageSummary(),
+    });
     await this.log("session_end", { reason });
     await this.flush();
   }
@@ -214,4 +254,35 @@ export class SessionStore {
     this.sequence += 1;
     return this.sequence;
   }
+
+  private addTokenUsage(usage: ChatCompletionUsage): void {
+    this.tokenUsage.request_count += 1;
+    this.tokenUsage.prompt_tokens += usage.prompt_tokens ?? 0;
+    this.tokenUsage.completion_tokens += usage.completion_tokens ?? 0;
+    this.tokenUsage.total_tokens += usage.total_tokens ?? 0;
+    this.tokenUsage.completion_text_tokens += getNumberDetail(
+      usage.completion_tokens_details,
+      "text_tokens",
+    );
+    this.tokenUsage.completion_reasoning_tokens += getNumberDetail(
+      usage.completion_tokens_details,
+      "reasoning_tokens",
+    );
+    this.tokenUsage.prompt_text_tokens += getNumberDetail(
+      usage.prompt_tokens_details,
+      "text_tokens",
+    );
+  }
+
+  private getTokenUsageSummary(): TokenUsageSummary {
+    return { ...this.tokenUsage };
+  }
+}
+
+function getNumberDetail(
+  details: Record<string, unknown> | null | undefined,
+  key: string,
+): number {
+  const value = details?.[key];
+  return typeof value === "number" ? value : 0;
 }
