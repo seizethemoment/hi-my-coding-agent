@@ -86,9 +86,11 @@ type SessionEventRecord<TType extends keyof SessionEventMap> = {
 
 export type TokenUsageSummary = {
   request_count: number;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
   prompt_tokens: number;
   completion_tokens: number;
-  total_tokens: number;
   completion_text_tokens: number;
   completion_reasoning_tokens: number;
   prompt_text_tokens: number;
@@ -103,9 +105,11 @@ export class SessionStore {
   private closed = false;
   private readonly tokenUsage: TokenUsageSummary = {
     request_count: 0,
+    input_tokens: 0,
+    output_tokens: 0,
+    total_tokens: 0,
     prompt_tokens: 0,
     completion_tokens: 0,
-    total_tokens: 0,
     completion_text_tokens: 0,
     completion_reasoning_tokens: 0,
     prompt_text_tokens: 0,
@@ -257,9 +261,14 @@ export class SessionStore {
 
   private addTokenUsage(usage: ChatCompletionUsage): void {
     this.tokenUsage.request_count += 1;
-    this.tokenUsage.prompt_tokens += usage.prompt_tokens ?? 0;
-    this.tokenUsage.completion_tokens += usage.completion_tokens ?? 0;
+    const inputTokens = usage.prompt_tokens ?? 0;
+    const outputTokens = usage.completion_tokens ?? 0;
+
+    this.tokenUsage.input_tokens += inputTokens;
+    this.tokenUsage.output_tokens += outputTokens;
     this.tokenUsage.total_tokens += usage.total_tokens ?? 0;
+    this.tokenUsage.prompt_tokens += inputTokens;
+    this.tokenUsage.completion_tokens += outputTokens;
     this.tokenUsage.completion_text_tokens += getNumberDetail(
       usage.completion_tokens_details,
       "text_tokens",

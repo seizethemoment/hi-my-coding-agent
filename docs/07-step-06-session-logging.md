@@ -54,6 +54,19 @@
 
 如果 provider 返回了 token usage，也建议一起记。
 
+当前实现会额外写两类 token 事件：
+
+- `token_usage`：每次模型请求结束后写入本次 usage 和累计 usage
+- `session_summary`：session 关闭前写入整场会话的累计 usage
+
+汇总字段建议统一看这三个：
+
+- `input_tokens`：输入 token，对应 OpenAI 兼容返回里的 `prompt_tokens`
+- `output_tokens`：输出 token，对应 OpenAI 兼容返回里的 `completion_tokens`
+- `total_tokens`：输入与输出合计，直接使用 provider 返回的 `total_tokens`
+
+为了兼容 OpenAI 风格字段，日志里也保留 `prompt_tokens` 和 `completion_tokens`。
+
 ## Session 的最小元数据
 
 建议每个 session 至少有：
@@ -103,4 +116,3 @@
 ## 下一步
 
 下一篇会补安全边界。到这里 agent 已经能跑工具了，越往后越不能再拖安全层。
-
