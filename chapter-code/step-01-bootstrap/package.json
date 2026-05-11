@@ -1,18 +1,12 @@
 {
-  "name": "hi-my-coding-agent",
+  "name": "step-01-bootstrap",
   "version": "0.1.0",
   "private": true,
-  "description": "A step-by-step coding agent tutorial project.",
   "type": "module",
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "chapter:verify": "node scripts/verify-chapter-code.mjs"
+    "verify": "tsx src/index.ts verify"
   },
   "dependencies": {
     "dotenv": "^16.6.1"

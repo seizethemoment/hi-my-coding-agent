@@ -27,6 +27,21 @@ CODING_AGENT_BASE_URL=https://coding.dashscope.aliyuncs.com/v1
 CODING_AGENT_MODEL=qwen3.6-plus
 ```
 
+第 1 步到第 6 步的独立配套代码放在 [chapter-code](./chapter-code)：
+
+```bash
+npm run chapter:verify
+```
+
+每个章节目录都可以单独进入运行，例如：
+
+```bash
+cd chapter-code/step-04-agent-loop
+npm install
+npm run verify
+npm run dev -- agent-once "创建 hello.txt，内容是 hello agent"
+```
+
 阅读顺序：
 
 1. [docs/00-preface-industry-landscape.md](./docs/00-preface-industry-landscape.md)
@@ -60,4 +75,3 @@ CODING_AGENT_MODEL=qwen3.6-plus
 
 - [docs/00-preface-industry-landscape.md](./docs/00-preface-industry-landscape.md)
 - [docs/01-architecture-and-roadmap.md](./docs/01-architecture-and-roadmap.md)
-
